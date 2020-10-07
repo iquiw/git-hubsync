@@ -22,6 +22,14 @@ macro_rules! ostr {
     };
 }
 
+fn strip_prefix<'a>(s: &'a str, prefix: &str) -> Option<&'a str> {
+    if s.starts_with(prefix) {
+        Some(&s[prefix.len()..])
+    } else {
+        None
+    }
+}
+
 pub struct Range<'a> {
     repo: &'a Repository,
     beg: Oid,
@@ -64,9 +72,7 @@ impl Git {
         let default_name = format!(
             "{}/{}",
             ostr!(remote.name()),
-            default_ref
-                .strip_prefix("refs/heads/")
-                .unwrap_or(default_ref)
+            strip_prefix(default_ref, "refs/heads/").unwrap_or(default_ref)
         );
         for result in self.repo.branches(Some(BranchType::Local))? {
             let (branch, _) = result?;
@@ -169,8 +175,8 @@ pub fn fetch(remote: &mut Remote) -> Result<(), Box<dyn Error>> {
         "".to_string()
     };
     remote_callbacks.update_tips(move |s, from, to| {
-        let remote_ref = s.strip_prefix("refs/remotes/").unwrap_or(s);
-        let branch = remote_ref.strip_prefix(&remote_name).unwrap_or(remote_ref);
+        let remote_ref = strip_prefix(s, "refs/remotes/").unwrap_or(s);
+        let branch = strip_prefix(remote_ref, &remote_name).unwrap_or(remote_ref);
         if from.is_zero() {
             println!(" * [new branch]            {:14} -> {}", branch, remote_ref);
         } else if to.is_zero() {
