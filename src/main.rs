@@ -35,7 +35,7 @@ fn git_hubsync() -> Result<(), Box<dyn Error>> {
     git.fetch(&mut default_remote)?;
     let (remote_default_branch, mut odefault_branch) = git.default_branch(&default_remote)?;
     println!("remote default: {}", ostr!(remote_default_branch.name()?));
-    println!("");
+    println!();
 
     for mut branch in git.local_branches()? {
         let remote = match git.remote(&branch) {

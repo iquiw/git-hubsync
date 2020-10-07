@@ -57,7 +57,7 @@ impl Git {
 
     pub fn current_branch(&self) -> Result<Branch<'_>, Box<dyn Error>> {
         if self.repo.head_detached()? {
-            Err(GitError::new(format!("Head is detached")).into())
+            Err(GitError::new("Head is detached".to_string()).into())
         } else {
             Ok(Branch::wrap(self.repo.head()?))
         }
