@@ -27,13 +27,13 @@ fn main() {
 fn git_hubsync() -> Result<(), Box<dyn Error>> {
     let repo = Repository::open_from_env()?;
     let git = Git::new(repo);
-    let current_branch = git.current_branch()?;
+    let mut current_branch = git.current_branch()?;
 
     println!("current branch: {}", ostr!(current_branch.name()?));
     let mut default_remote = git.remote(&current_branch)?;
     println!("default remote: {}", ostr!(default_remote.name()));
     git::fetch(&mut default_remote)?;
-    let (remote_default_branch, odefault_branch) = git.default_branch(&default_remote)?;
+    let (remote_default_branch, mut odefault_branch) = git.default_branch(&default_remote)?;
     println!("remote default: {}", ostr!(remote_default_branch.name()?));
     println!("");
 
@@ -82,9 +82,13 @@ fn git_hubsync() -> Result<(), Box<dyn Error>> {
                     let range = git.new_range(&branch, &remote_default_branch)?;
                     if range.is_ancestor()? {
                         if git::is_branch_same(&branch, &current_branch)? {
-                            if let Some(ref default_branch) = odefault_branch {
-                                git.set_head(default_branch)?;
+                            let tmp = odefault_branch;
+                            odefault_branch = None;
+                            if let Some(default_branch) = tmp {
+                                git.set_head(&default_branch)?;
+                                current_branch = default_branch;
                             } else {
+                                odefault_branch = tmp;
                                 println!(
                                     "warning: no default branch, skipping to delete '{}'",
                                     ostr!(branch.name()?)
