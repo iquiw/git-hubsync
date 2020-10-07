@@ -32,7 +32,7 @@ fn git_hubsync() -> Result<(), Box<dyn Error>> {
     println!("current branch: {}", ostr!(current_branch.name()?));
     let mut default_remote = git.remote(&current_branch)?;
     println!("default remote: {}", ostr!(default_remote.name()));
-    git::fetch(&mut default_remote)?;
+    git.fetch(&mut default_remote)?;
     let (remote_default_branch, mut odefault_branch) = git.default_branch(&default_remote)?;
     println!("remote default: {}", ostr!(remote_default_branch.name()?));
     println!("");

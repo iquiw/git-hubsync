@@ -86,6 +86,58 @@ impl Git {
         Ok((Branch::wrap(r), None))
     }
 
+    pub fn fetch(&self, remote: &mut Remote) -> Result<(), Box<dyn Error>> {
+        let fetch_refspecs = remote.fetch_refspecs()?;
+        let mut refspecs = vec![];
+        for refspec in fetch_refspecs.iter() {
+            refspecs.push(ostr!(refspec));
+        }
+        let mut remote_callbacks = RemoteCallbacks::new();
+        remote_callbacks.credentials(|_url, username_from_url, _allowed_types| {
+            Cred::ssh_key_from_agent(username_from_url.unwrap())
+        });
+
+        let remote_name = if let Some(ref name) = remote.name() {
+            name.to_string() + "/"
+        } else {
+            "".to_string()
+        };
+        remote_callbacks.update_tips(move |s, from, to| {
+            let remote_ref = strip_prefix(s, "refs/remotes/").unwrap_or(s);
+            let branch = strip_prefix(remote_ref, &remote_name).unwrap_or(remote_ref);
+            if from.is_zero() {
+                println!(" * [new branch]            {:14} -> {}", branch, remote_ref);
+            } else if to.is_zero() {
+                println!(
+                    " - [deleted]               {:14} -> {}",
+                    "(none)", remote_ref
+                );
+            } else {
+                let range = Range {
+                    repo: &self.repo,
+                    beg: from,
+                    end: to,
+                };
+                if range.is_ancestor().unwrap_or(false) {
+                    println!(
+                        "   {:.10}..{:.10}  {:14} -> {:14}",
+                        from, to, branch, remote_ref
+                    );
+                } else {
+                    println!(
+                        " + {:.10}..{:.10}  {:14} -> {:14} (forced update)",
+                        from, to, branch, remote_ref
+                    );
+                }
+            }
+            true
+        });
+        let mut fetch_options = FetchOptions::new();
+        fetch_options.remote_callbacks(remote_callbacks);
+        fetch_options.prune(FetchPrune::On);
+        Ok(remote.fetch(&refspecs, Some(&mut fetch_options), None)?)
+    }
+
     pub fn local_branches(&self) -> Result<Vec<Branch>, Box<dyn Error>> {
         let mut v = vec![];
         for result in self.repo.branches(Some(BranchType::Local))? {
@@ -156,44 +208,4 @@ pub fn is_branch_same(b1: &Branch, b2: &Branch) -> Result<bool, Box<dyn Error>> 
     let n1 = b1.name_bytes()?;
     let n2 = b2.name_bytes()?;
     Ok(n1 == n2)
-}
-
-pub fn fetch(remote: &mut Remote) -> Result<(), Box<dyn Error>> {
-    let fetch_refspecs = remote.fetch_refspecs()?;
-    let mut refspecs = vec![];
-    for refspec in fetch_refspecs.iter() {
-        refspecs.push(ostr!(refspec));
-    }
-    let mut remote_callbacks = RemoteCallbacks::new();
-    remote_callbacks.credentials(|_url, username_from_url, _allowed_types| {
-        Cred::ssh_key_from_agent(username_from_url.unwrap())
-    });
-
-    let remote_name = if let Some(ref name) = remote.name() {
-        name.to_string() + "/"
-    } else {
-        "".to_string()
-    };
-    remote_callbacks.update_tips(move |s, from, to| {
-        let remote_ref = strip_prefix(s, "refs/remotes/").unwrap_or(s);
-        let branch = strip_prefix(remote_ref, &remote_name).unwrap_or(remote_ref);
-        if from.is_zero() {
-            println!(" * [new branch]            {:14} -> {}", branch, remote_ref);
-        } else if to.is_zero() {
-            println!(
-                " - [deleted]               {:14} -> {}",
-                "(none)", remote_ref
-            );
-        } else {
-            println!(
-                "   {:.10}..{:.10}  {:14} -> {}",
-                from, to, branch, remote_ref
-            );
-        }
-        true
-    });
-    let mut fetch_options = FetchOptions::new();
-    fetch_options.remote_callbacks(remote_callbacks);
-    fetch_options.prune(FetchPrune::On);
-    Ok(remote.fetch(&refspecs, Some(&mut fetch_options), None)?)
 }
