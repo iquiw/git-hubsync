@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::fmt;
 
 use git2::{self, Branch, ErrorClass, ErrorCode, Oid, Repository};
 
@@ -14,6 +15,24 @@ enum BranchAction<'a> {
     NoDefault,
     Delete,
     Unmerged,
+}
+
+impl fmt::Display for BranchAction<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        let (tag, upstream) = match self {
+            BranchAction::UpToDate => ("up-to-date", None),
+            BranchAction::Merge(upstream, _) => ("merge ", upstream.name().unwrap_or(None)),
+            BranchAction::UpdateRef(upstream, _) => {
+                ("update-ref ", upstream.name().unwrap_or(None))
+            }
+            BranchAction::Unpushed => ("unpushed", None),
+            BranchAction::Unmerged => ("unmerged", None),
+            BranchAction::CheckoutAndDelete => ("checkout-and-delete", None),
+            BranchAction::Delete => ("delete", None),
+            BranchAction::NoDefault => ("nodefault", None),
+        };
+        write!(f, "{}{}", tag, upstream.unwrap_or(""))
+    }
 }
 
 pub fn hubsync() -> Result<(), Box<dyn Error>> {
@@ -154,5 +173,64 @@ fn find_branch_action<'a>(
                 Err(e.into())
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::env;
+    use std::error::Error;
+    use std::fs::create_dir;
+    use std::process::Command;
+    use std::sync::Once;
+
+    use git2::{self, BranchType, Repository};
+
+    use super::find_branch_action;
+    use crate::git::Git;
+
+    static START: Once = Once::new();
+
+    fn setup_once() {
+        START.call_once(|| {
+            setup().unwrap();
+        });
+    }
+
+    fn setup() -> Result<(), Box<dyn Error>> {
+        let mut tar_file = env::current_dir()?;
+        tar_file.push("ght.tar.gz");
+
+        let mut tmp_dir = env::temp_dir();
+        tmp_dir.push("git-hubsync-test");
+        if !tmp_dir.is_dir() {
+            create_dir(&tmp_dir)?;
+        }
+        env::set_current_dir(&tmp_dir)?;
+        tmp_dir.push("ght");
+        if tmp_dir.is_dir() {
+            Command::new("rm").args(&["-rf", "ght"]).status()?;
+        }
+        Command::new("tar").arg("xzf").arg(tar_file).status()?;
+        env::set_current_dir(&tmp_dir)?;
+        Command::new("git").arg("fetch").status()?;
+        Ok(())
+    }
+
+    #[test]
+    fn find_branch_action_merge() -> Result<(), Box<dyn Error>> {
+        setup_once();
+        Command::new("git").args(&["switch", "master"]).status()?;
+
+        let repo = Repository::open_from_env()?;
+        let branch = repo.find_branch("master", BranchType::Local)?;
+        let current_branch = repo.find_branch("master", BranchType::Local)?;
+        let remote_default_branch = repo.find_branch("origin/master", BranchType::Remote)?;
+        let git = Git::new(Repository::open_from_env()?);
+
+        let action =
+            find_branch_action(&git, &branch, &current_branch, &remote_default_branch, None)?;
+        assert_eq!(&format!("{}", action), "merge origin/master");
+        Ok(())
     }
 }
