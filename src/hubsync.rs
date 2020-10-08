@@ -133,7 +133,9 @@ fn find_branch_action<'a>(
             }
         }
         Err(e) => {
-            if e.class() == ErrorClass::Reference && e.code() == ErrorCode::NotFound {
+            if e.class() == ErrorClass::Reference && e.code() == ErrorCode::NotFound
+                || /* pushremote */ e.class() == ErrorClass::Config && e.code() == ErrorCode::NotFound
+            {
                 let range = git.new_range(&branch, &remote_default_branch)?;
                 if range.is_ancestor()? {
                     if git::is_branch_same(&branch, &current_branch)? {
@@ -148,9 +150,6 @@ fn find_branch_action<'a>(
                 } else {
                     Ok(BranchAction::Unmerged)
                 }
-            } else if e.class() == ErrorClass::Config && e.code() == ErrorCode::NotFound {
-                // pushremote
-                Ok(BranchAction::Delete)
             } else {
                 Err(e.into())
             }
