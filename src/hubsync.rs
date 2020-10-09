@@ -213,24 +213,84 @@ mod test {
         }
         Command::new("tar").arg("xzf").arg(tar_file).status()?;
         env::set_current_dir(&tmp_dir)?;
-        Command::new("git").arg("fetch").status()?;
+        Command::new("git").args(&["fetch", "--prune"]).status()?;
         Ok(())
     }
 
-    #[test]
-    fn find_branch_action_merge() -> Result<(), Box<dyn Error>> {
+    fn test_find_branch_action(
+        branch_name: &str,
+        current: &str,
+        odefault: Option<&str>,
+    ) -> Result<String, Box<dyn Error>> {
         setup_once();
-        Command::new("git").args(&["switch", "master"]).status()?;
+        Command::new("git").args(&["switch", current]).status()?;
 
         let repo = Repository::open_from_env()?;
-        let branch = repo.find_branch("master", BranchType::Local)?;
-        let current_branch = repo.find_branch("master", BranchType::Local)?;
+        let branch = repo.find_branch(branch_name, BranchType::Local)?;
+        let current_branch = repo.find_branch(current, BranchType::Local)?;
         let remote_default_branch = repo.find_branch("origin/master", BranchType::Remote)?;
+        let default_branch = if let Some(default) = odefault {
+            Some(repo.find_branch(default, BranchType::Local)?)
+        } else {
+            None
+        };
         let git = Git::new(Repository::open_from_env()?);
 
-        let action =
-            find_branch_action(&git, &branch, &current_branch, &remote_default_branch, None)?;
-        assert_eq!(&format!("{}", action), "merge origin/master");
-        Ok(())
+        let action = find_branch_action(
+            &git,
+            &branch,
+            &current_branch,
+            &remote_default_branch,
+            default_branch.as_ref(),
+        )?;
+        Ok(format!("{}", action))
+    }
+
+    #[test]
+    fn find_branch_action_merge() {
+        let action_str = test_find_branch_action("master", "master", None).unwrap();
+        assert_eq!(&action_str, "merge origin/master");
+    }
+
+    #[test]
+    fn find_branch_action_up_to_date() {
+        let action_str = test_find_branch_action("up-to-date", "master", None).unwrap();
+        assert_eq!(&action_str, "up-to-date");
+    }
+
+    #[test]
+    fn find_branch_action_update_ref() {
+        let action_str = test_find_branch_action("ff", "master", None).unwrap();
+        assert_eq!(&action_str, "update-ref origin/ff");
+    }
+
+    #[test]
+    fn find_branch_action_unpushed() {
+        let action_str = test_find_branch_action("non-ff", "master", None).unwrap();
+        assert_eq!(&action_str, "unpushed");
+    }
+
+    #[test]
+    fn find_branch_action_delete() {
+        let action_str = test_find_branch_action("deleted", "master", None).unwrap();
+        assert_eq!(&action_str, "delete");
+    }
+
+    #[test]
+    fn find_branch_action_nodefault() {
+        let action_str = test_find_branch_action("deleted", "deleted", None).unwrap();
+        assert_eq!(&action_str, "nodefault");
+    }
+
+    #[test]
+    fn find_branch_action_checkout_and_delete() {
+        let action_str = test_find_branch_action("deleted", "deleted", Some("master")).unwrap();
+        assert_eq!(&action_str, "checkout-and-delete");
+    }
+
+    #[test]
+    fn find_branch_action_unmerged() {
+        let action_str = test_find_branch_action("unmerge-deleted", "master", None).unwrap();
+        assert_eq!(&action_str, "unmerged");
     }
 }
