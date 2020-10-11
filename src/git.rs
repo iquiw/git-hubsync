@@ -1,8 +1,8 @@
 use std::error::Error;
 
 use git2::{
-    self, Branch, BranchType, Cred, FetchOptions, FetchPrune, Oid, Remote, RemoteCallbacks,
-    Repository,
+    self, Branch, BranchType, Cred, FetchOptions, FetchPrune, MergeOptions, ObjectType, Oid,
+    Remote, RemoteCallbacks, Repository, ResetType,
 };
 
 use crate::err::GitError;
@@ -147,16 +147,20 @@ impl Git {
         Ok(v)
     }
 
-    // https://github.com/rust-lang/git2-rs/blob/f3b87baed1e33d6c2d94fe1fa6aa6503a071d837/examples/pull.rs#L87
-    pub fn merge(&self, branch: &mut Branch, remote_branch: &Branch) -> Result<(), Box<dyn Error>> {
-        self.update_ref(branch, remote_branch)?;
-        self.repo.checkout_head(Some(
-            git2::build::CheckoutBuilder::default()
-                // For some reason the force is required to make the working directory actually get updated
-                // I suspect we should be adding some logic to handle dirty working directory states
-                // but this is just an example so maybe not.
-                .force(),
-        ))?;
+    pub fn merge(&self, branch: &Branch) -> Result<(), Box<dyn Error>> {
+        let ann_commit = self.repo.reference_to_annotated_commit(branch.get())?;
+        self.repo.merge(
+            &[&ann_commit],
+            Some(
+                MergeOptions::new()
+                    .find_renames(true)
+                    .fail_on_conflict(true)
+                    .no_recursive(true),
+            ),
+            None,
+        )?;
+        self.repo
+            .reset(&branch.get().peel(ObjectType::Any)?, ResetType::Mixed, None)?;
         Ok(())
     }
 
