@@ -185,8 +185,11 @@ impl Git {
         let rc = self
             .repo
             .reference_to_annotated_commit(remote_branch.get())?;
-        let name = ostr!(branch.name()?);
-        let msg = format!("update-ref: Setting {} to id: {}", name, rc.id());
+        let msg = format!(
+            "update-ref: moving from {} to {}",
+            ostr!(branch.name()?),
+            ostr!(remote_branch.name()?)
+        );
         branch.get_mut().set_target(rc.id(), &msg)?;
         Ok(())
     }
