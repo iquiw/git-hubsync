@@ -100,7 +100,7 @@ pub fn hubsync() -> Result<(), Box<dyn Error>> {
                 let tmp = odefault_branch;
                 odefault_branch = None;
                 if let Some(default_branch) = tmp {
-                    git.set_head(&default_branch)?;
+                    git.checkout(&default_branch)?;
                     current_branch = default_branch;
                 }
                 action_delete(&mut branch)?;

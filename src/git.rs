@@ -55,6 +55,13 @@ impl Git {
         Git { repo }
     }
 
+    pub fn checkout(&self, branch: &Branch) -> Result<(), Box<dyn Error>> {
+        self.repo
+            .checkout_tree(&branch.get().peel(ObjectType::Commit)?, None)?;
+        self.repo.set_head(ostr!(branch.get().name()))?;
+        Ok(())
+    }
+
     pub fn current_branch(&self) -> Result<Branch<'_>, Box<dyn Error>> {
         if self.repo.head_detached()? {
             Err(GitError::new("Head is detached".to_string()).into())
@@ -174,10 +181,6 @@ impl Git {
             beg: local.get().peel_to_commit()?.id(),
             end: upstream.get().peel_to_commit()?.id(),
         })
-    }
-
-    pub fn set_head(&self, branch: &Branch) -> Result<(), Box<dyn Error>> {
-        Ok(self.repo.set_head(ostr!(branch.get().name()))?)
     }
 
     pub fn update_ref(
