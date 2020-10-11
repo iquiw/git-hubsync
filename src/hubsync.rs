@@ -75,7 +75,7 @@ pub fn hubsync() -> Result<(), Box<dyn Error>> {
         match action {
             BranchAction::UpToDate => { /* no action */ }
             BranchAction::Merge(upstream, oid) => {
-                git.merge(&upstream)?;
+                git.fastforward(&mut branch, &upstream)?;
                 println!("Updated branch {} (was {:.7})", ostr!(branch.name()?), oid);
             }
             BranchAction::UpdateRef(upstream, oid) => {

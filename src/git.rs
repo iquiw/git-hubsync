@@ -1,8 +1,8 @@
 use std::error::Error;
 
 use git2::{
-    self, Branch, BranchType, Cred, FetchOptions, FetchPrune, MergeOptions, ObjectType, Oid,
-    Remote, RemoteCallbacks, Repository, ResetType,
+    self, Branch, BranchType, Cred, FetchOptions, FetchPrune, ObjectType, Oid, Remote,
+    RemoteCallbacks, Repository,
 };
 
 use crate::err::GitError;
@@ -154,20 +154,14 @@ impl Git {
         Ok(v)
     }
 
-    pub fn merge(&self, branch: &Branch) -> Result<(), Box<dyn Error>> {
-        let ann_commit = self.repo.reference_to_annotated_commit(branch.get())?;
-        self.repo.merge(
-            &[&ann_commit],
-            Some(
-                MergeOptions::new()
-                    .find_renames(true)
-                    .fail_on_conflict(true)
-                    .no_recursive(true),
-            ),
-            None,
-        )?;
+    pub fn fastforward(
+        &self,
+        branch: &mut Branch,
+        upstream: &Branch,
+    ) -> Result<(), Box<dyn Error>> {
         self.repo
-            .reset(&branch.get().peel(ObjectType::Any)?, ResetType::Mixed, None)?;
+            .checkout_tree(&upstream.get().peel(ObjectType::Commit)?, None)?;
+        self.update_ref(branch, upstream)?;
         Ok(())
     }
 
