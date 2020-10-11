@@ -130,13 +130,13 @@ fn action_delete(branch: &mut Branch) -> Result<(), Box<dyn Error>> {
 }
 
 fn find_branch_action<'a>(
-    git: &Git,
+    git: &'a Git,
     branch: &Branch<'a>,
     current_branch: &Branch,
     remote_default_branch: &Branch,
     odefault_branch: Option<&Branch<'a>>,
 ) -> Result<BranchAction<'a>, Box<dyn Error>> {
-    match branch.upstream() {
+    match git.upstream(&branch) {
         Ok(upstream) => {
             let range = git.new_range(&branch, &upstream)?;
             if range.is_identical() {

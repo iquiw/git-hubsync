@@ -206,6 +206,26 @@ impl Git {
         };
         Ok(self.repo.find_remote(&name)?)
     }
+
+    pub fn upstream<'a>(&'a self, branch: &Branch<'a>) -> Result<Branch<'a>, git2::Error> {
+        if let Ok(upstream) = branch.upstream() {
+            Ok(upstream)
+        } else {
+            let branch_name = branch.get().shorthand().ok_or(git2::Error::new(
+                git2::ErrorCode::NotFound,
+                git2::ErrorClass::Reference,
+                "Unable to get branch name"
+            ))?;
+            let remote_name = self
+                .repo
+                .config()?
+                .get_string(&format!("branch.{}.pushremote", branch_name))?;
+            Ok(self.repo.find_branch(
+                &format!("{}/{}", remote_name, branch_name),
+                BranchType::Remote,
+            )?)
+        }
+    }
 }
 
 pub fn is_branch_same(b1: &Branch, b2: &Branch) -> Result<bool, Box<dyn Error>> {
