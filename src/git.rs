@@ -22,11 +22,11 @@ macro_rules! ostr {
     };
 }
 
-fn strip_prefix<'a>(s: &'a str, prefix: &str) -> Option<&'a str> {
+fn strip_prefix<'a>(s: &'a str, prefix: &str) -> &'a str {
     if s.starts_with(prefix) {
-        Some(&s[prefix.len()..])
+        &s[prefix.len()..]
     } else {
-        None
+        s
     }
 }
 
@@ -79,7 +79,7 @@ impl Git {
         let default_name = format!(
             "{}/{}",
             ostr!(remote.name()),
-            strip_prefix(default_ref, "refs/heads/").unwrap_or(default_ref)
+            strip_prefix(default_ref, "refs/heads/")
         );
         for result in self.repo.branches(Some(BranchType::Local))? {
             let (branch, _) = result?;
@@ -110,8 +110,8 @@ impl Git {
             "".to_string()
         };
         remote_callbacks.update_tips(move |s, from, to| {
-            let remote_ref = strip_prefix(s, "refs/remotes/").unwrap_or(s);
-            let branch = strip_prefix(remote_ref, &remote_name).unwrap_or(remote_ref);
+            let remote_ref = strip_prefix(s, "refs/remotes/");
+            let branch = strip_prefix(remote_ref, &remote_name);
             if from.is_zero() {
                 println!(" * [new branch]            {:14} -> {}", branch, remote_ref);
             } else if to.is_zero() {
