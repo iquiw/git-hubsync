@@ -211,11 +211,13 @@ impl Git {
         if let Ok(upstream) = branch.upstream() {
             Ok(upstream)
         } else {
-            let branch_name = branch.get().shorthand().ok_or(git2::Error::new(
-                git2::ErrorCode::NotFound,
-                git2::ErrorClass::Reference,
-                "Unable to get branch name"
-            ))?;
+            let branch_name = branch.get().shorthand().ok_or_else(|| {
+                git2::Error::new(
+                    git2::ErrorCode::NotFound,
+                    git2::ErrorClass::Invalid,
+                    "Unable to get branch name",
+                )
+            })?;
             let remote_name = self
                 .repo
                 .config()?
