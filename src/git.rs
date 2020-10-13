@@ -93,6 +93,71 @@ impl Git {
         Ok((Branch::wrap(r), None))
     }
 
+    pub fn update_tips(
+        &self,
+        remote: &Remote,
+        s: &str,
+        from: Oid,
+        to: Oid,
+    ) -> Result<(), Box<dyn Error>> {
+        if to.is_zero() {
+            println!(
+                " - [deleted]               {:14} -> {}",
+                "(none)",
+                strip_prefix(s, "refs/remotes/")
+            );
+            return Ok(());
+        }
+        let refer = self.repo.find_reference(s)?;
+        let (mark, from_name, to_name) = if refer.is_tag() {
+            let name = ostr!(refer.shorthand());
+            ("tag", name.to_string(), name.to_string())
+        } else {
+            let mut result = ("ref", s.to_string(), s.to_string());
+            for refspec in remote.refspecs() {
+                if let Ok(src) = refspec.rtransform(s) {
+                    if refer.is_remote() {
+                        result = (
+                            "branch",
+                            strip_prefix(ostr!(src.as_str()), "refs/heads/").to_string(),
+                            ostr!(refer.shorthand()).to_string(),
+                        );
+                    } else {
+                        result = ("ref", ostr!(src.as_str()).to_string(), s.to_string());
+                    }
+                    break;
+                }
+            }
+            result
+        };
+        if from.is_zero() {
+            println!(
+                " * {:24}{:14} -> {}",
+                format!("[new {}]", mark),
+                from_name,
+                to_name
+            );
+        } else {
+            let range = Range {
+                repo: &self.repo,
+                beg: from,
+                end: to,
+            };
+            if range.is_ancestor().unwrap_or(false) {
+                println!(
+                    "   {:.10}..{:.10}  {:14} -> {:14}",
+                    from, to, from_name, to_name
+                );
+            } else {
+                println!(
+                    " + {:.10}..{:.10}  {:14} -> {:14} (forced update)",
+                    from, to, from_name, to_name
+                );
+            }
+        }
+        Ok(())
+    }
+
     pub fn fetch(&self, remote: &mut Remote) -> Result<(), Box<dyn Error>> {
         let fetch_refspecs = remote.fetch_refspecs()?;
         let mut refspecs = vec![];
@@ -104,38 +169,10 @@ impl Git {
             Cred::ssh_key_from_agent(username_from_url.unwrap())
         });
 
-        let remote_name = if let Some(ref name) = remote.name() {
-            name.to_string() + "/"
-        } else {
-            "".to_string()
-        };
+        let remote_clone = remote.clone();
         remote_callbacks.update_tips(move |s, from, to| {
-            let remote_ref = strip_prefix(s, "refs/remotes/");
-            let branch = strip_prefix(remote_ref, &remote_name);
-            if from.is_zero() {
-                println!(" * [new branch]            {:14} -> {}", branch, remote_ref);
-            } else if to.is_zero() {
-                println!(
-                    " - [deleted]               {:14} -> {}",
-                    "(none)", remote_ref
-                );
-            } else {
-                let range = Range {
-                    repo: &self.repo,
-                    beg: from,
-                    end: to,
-                };
-                if range.is_ancestor().unwrap_or(false) {
-                    println!(
-                        "   {:.10}..{:.10}  {:14} -> {:14}",
-                        from, to, branch, remote_ref
-                    );
-                } else {
-                    println!(
-                        " + {:.10}..{:.10}  {:14} -> {:14} (forced update)",
-                        from, to, branch, remote_ref
-                    );
-                }
+            if let Err(e) = self.update_tips(&remote_clone, s, from, to) {
+                println!("s: {}", e);
             }
             true
         });
