@@ -1,9 +1,10 @@
 use std::error::Error;
 
 use git2::{
-    self, Branch, BranchType, Config, Cred, FetchOptions, FetchPrune, ObjectType, Oid, Remote,
+    self, Branch, BranchType, Config, FetchOptions, FetchPrune, ObjectType, Oid, Remote,
     RemoteCallbacks, Repository,
 };
+use git2_credentials::CredentialHandler;
 
 use crate::err::GitError;
 
@@ -166,8 +167,10 @@ impl Git {
             refspecs.push(ostr!(refspec));
         }
         let mut remote_callbacks = RemoteCallbacks::new();
-        remote_callbacks.credentials(|_url, username_from_url, _allowed_types| {
-            Cred::ssh_key_from_agent(username_from_url.unwrap())
+        let config = self.repo.config()?;
+        let mut ch = CredentialHandler::new(config);
+        remote_callbacks.credentials(move |url, username_from_url, allowed_types| {
+            ch.try_next_credential(url, username_from_url, allowed_types)
         });
 
         let remote_clone = remote.clone();
