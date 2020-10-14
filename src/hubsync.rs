@@ -37,7 +37,8 @@ impl fmt::Display for BranchAction<'_> {
 
 pub fn hubsync() -> Result<(), Box<dyn Error>> {
     let repo = Repository::open_from_env()?;
-    let git = Git::new(repo);
+    let config = repo.config()?;
+    let git = Git::new(repo, config);
     let mut current_branch = git.current_branch()?;
 
     println!("current branch: {}", ostr!(current_branch.name()?));
@@ -234,7 +235,9 @@ mod test {
         } else {
             None
         };
-        let git = Git::new(Repository::open_from_env()?);
+        let repo = Repository::open_from_env()?;
+        let config = repo.config()?;
+        let git = Git::new(repo, config);
 
         let action = find_branch_action(
             &git,
