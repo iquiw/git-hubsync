@@ -166,8 +166,12 @@ impl Git {
             refspecs.push(ostr!(refspec));
         }
         let mut remote_callbacks = RemoteCallbacks::new();
-        remote_callbacks.credentials(|_url, username_from_url, _allowed_types| {
-            Cred::ssh_key_from_agent(username_from_url.unwrap())
+        remote_callbacks.credentials(|url, username_from_url, allowed_types| {
+            if allowed_types.contains(git2::CredentialType::SSH_CUSTOM) {
+                Cred::ssh_key_from_agent(username_from_url.unwrap())
+            } else {
+                Cred::credential_helper(&self.config, url, username_from_url)
+            }
         });
 
         let remote_clone = remote.clone();
