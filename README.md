@@ -55,3 +55,4 @@ When upstream branch is deleted;
 ## Caveat
 
 * If remote name or branch name is not valid UTF-8, the program aborts.
+* It does not support Git LFS.
