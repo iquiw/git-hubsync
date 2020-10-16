@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 git2 = "^0.13.11"
+git2_credentials = "^0.6.1"

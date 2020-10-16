@@ -1,14 +1,16 @@
 use std::error::Error;
 
 use git2::{
-    self, Branch, BranchType, Cred, FetchOptions, FetchPrune, ObjectType, Oid, Remote,
+    self, Branch, BranchType, Config, FetchOptions, FetchPrune, ObjectType, Oid, Remote,
     RemoteCallbacks, Repository,
 };
+use git2_credentials::CredentialHandler;
 
 use crate::err::GitError;
 
 pub struct Git {
     repo: Repository,
+    config: Config,
 }
 
 macro_rules! ostr {
@@ -51,8 +53,8 @@ impl Range<'_> {
 }
 
 impl Git {
-    pub fn new(repo: Repository) -> Self {
-        Git { repo }
+    pub fn new(repo: Repository, config: Config) -> Self {
+        Git { repo, config }
     }
 
     pub fn checkout(&self, branch: &Branch) -> Result<(), Box<dyn Error>> {
@@ -165,8 +167,10 @@ impl Git {
             refspecs.push(ostr!(refspec));
         }
         let mut remote_callbacks = RemoteCallbacks::new();
-        remote_callbacks.credentials(|_url, username_from_url, _allowed_types| {
-            Cred::ssh_key_from_agent(username_from_url.unwrap())
+        let config = self.repo.config()?;
+        let mut ch = CredentialHandler::new(config);
+        remote_callbacks.credentials(move |url, username_from_url, allowed_types| {
+            ch.try_next_credential(url, username_from_url, allowed_types)
         });
 
         let remote_clone = remote.clone();
@@ -236,7 +240,7 @@ impl Git {
         let name = if let Ok(buf) = self.repo.branch_upstream_remote(branch_name) {
             ostr!(buf.as_str()).to_string()
         } else {
-            self.repo.config()?.get_string(&format!(
+            self.config.get_string(&format!(
                 "branch.{}.pushremote",
                 ostr!(branch.get().shorthand())
             ))?
@@ -256,8 +260,7 @@ impl Git {
                 )
             })?;
             let remote_name = self
-                .repo
-                .config()?
+                .config
                 .get_string(&format!("branch.{}.pushremote", branch_name))?;
             Ok(self.repo.find_branch(
                 &format!("{}/{}", remote_name, branch_name),
