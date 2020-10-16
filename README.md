@@ -2,11 +2,11 @@
 
 `git-hubsync` is a clone of `sync` subcommand of [hub](https://hub.github.com/).
 
-So why not to use `hub sync`?, because **some anti-virus software quarantines it!**
+So why not to use `hub sync`?  Because **some anti-virus software quarantines it!**
 
 ## Features
 
-* It does not use `git` command. Thanks [git2](https://github.com/rust-lang/git2-rs)!
+* It does not use `git` command.  Thanks [git2](https://github.com/rust-lang/git2-rs) and [git2_credentials](https://github.com/davidB/git2_credentials)!
   So it should be faster than `hub sync`, at least on Windows.
 * It selects remote of the current branch, instead of the first remote.
 * It can select default branch of the remote, even if `refs/remotes/<remote>/HEAD` does not exist.
@@ -33,4 +33,3 @@ So why not to use `hub sync`?, because **some anti-virus software quarantines it
 ## Caveat
 
 * If remote name or branch name is not valid UTF-8, the program aborts.
-* It supports only SSH agent authentication, or HTTPS without authentication.
