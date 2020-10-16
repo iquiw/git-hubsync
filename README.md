@@ -1,5 +1,7 @@
 # Git-HubSync
 
+[![CI](https://github.com/iquiw/git-hubsync/workflows/Rust/badge.svg)](https://github.com/iquiw/git-hubsync/actions)
+
 `git-hubsync` is a clone of `sync` subcommand of [hub](https://hub.github.com/).
 
 So why not to use `hub sync`?  Because **some anti-virus software quarantines it!**
