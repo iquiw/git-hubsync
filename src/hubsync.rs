@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::fmt;
 
+use colored::Colorize;
 use git2::{self, Branch, ErrorClass, ErrorCode, Oid, Repository};
 
 use crate::err::GitError;
@@ -77,21 +78,33 @@ pub fn hubsync() -> Result<(), Box<dyn Error>> {
             BranchAction::UpToDate => { /* no action */ }
             BranchAction::Merge(upstream, oid) => {
                 git.fastforward(&mut branch, &upstream)?;
-                println!("Updated branch {} (was {:.7})", ostr!(branch.name()?), oid);
+                println!(
+                    "{} {} (was {:.7})",
+                    "Updated branch".green(),
+                    ostr!(branch.name()?).bright_green(),
+                    oid
+                );
             }
             BranchAction::UpdateRef(upstream, oid) => {
                 git.update_ref(&mut branch, &upstream)?;
-                println!("Updated branch {} (was {:.7})", ostr!(branch.name()?), oid);
+                println!(
+                    "{} {} (was {:.7})",
+                    "Updated branch".green(),
+                    ostr!(branch.name()?).bright_green(),
+                    oid
+                );
             }
             BranchAction::Unpushed => {
                 println!(
-                    "warning: '{}' seems to contain unpushed commits",
+                    "{}: '{}' seems to contain unpushed commits",
+                    "warning".bright_yellow(),
                     ostr!(branch.name()?)
                 );
             }
             BranchAction::Unmerged => {
                 println!(
-                    "warning: '{}' was deleted on {}, but appears not merged into '{}'",
+                    "{}: '{}' was deleted on {}, but appears not merged into '{}'",
+                    "warning".bright_yellow(),
                     ostr!(branch.name()?),
                     ostr!(remote.name()),
                     ostr!(remote_default_branch.name()?)
@@ -111,7 +124,8 @@ pub fn hubsync() -> Result<(), Box<dyn Error>> {
             }
             BranchAction::NoDefault => {
                 println!(
-                    "warning: no default branch, skipping to delete '{}'",
+                    "{}: no default branch, skipping to delete '{}'",
+                    "warning".bright_yellow(),
                     ostr!(branch.name()?)
                 );
             }
@@ -123,8 +137,9 @@ pub fn hubsync() -> Result<(), Box<dyn Error>> {
 fn action_delete(branch: &mut Branch) -> Result<(), Box<dyn Error>> {
     branch.delete()?;
     println!(
-        "Deleted branch {} (was {:.7})",
-        ostr!(branch.name()?),
+        "{} {} (was {:.7})",
+        "Deleted branch".magenta(),
+        ostr!(branch.name()?).bright_magenta(),
         branch.get().peel_to_commit()?.id()
     );
     Ok(())
