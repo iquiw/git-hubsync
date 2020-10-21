@@ -91,8 +91,8 @@ impl Git {
                 }
             }
         }
-        let r = self.repo.find_reference(&default_ref)?;
-        Ok((Branch::wrap(r), None))
+        let upstream = self.repo.find_branch(&default_name, BranchType::Remote)?;
+        Ok((upstream, None))
     }
 
     pub fn update_tips(
