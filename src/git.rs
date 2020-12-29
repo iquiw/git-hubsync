@@ -235,6 +235,17 @@ impl Git {
         Ok(())
     }
 
+    pub fn only_one_remote(&self) -> Result<Option<Remote<'_>>, Box<dyn Error>> {
+        let remotes = self.repo.remotes()?;
+        if remotes.len() == 1 {
+            if let Some(oremote_name) = remotes.iter().next() {
+                let remote_name = ostr!(oremote_name);
+                return Ok(Some(self.repo.find_remote(&remote_name)?));
+            }
+        }
+        Ok(None)
+    }
+
     pub fn remote(&self, branch: &Branch) -> Result<Remote<'_>, Box<dyn Error>> {
         let branch_name = ostr!(branch.get().name());
         let name = if let Ok(buf) = self.repo.branch_upstream_remote(branch_name) {
