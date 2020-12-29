@@ -7,6 +7,30 @@
 So why not to use `hub sync`?  Because **some anti-virus software quarantines it!**
 
 Jokes aside, there are several advantages and disadvantages compared to `hub sync`.
+See the features below.
+
+It manages local branches according to corresponding remote branches.
+
+For example, if `topic` branch is checked out and the branch is merged to
+`main` branch on the remote `origin`, `git hubsync` does the followings
+(and more) in one command.
+
+* Update `main` branch to `origin/main`.
+* Checkout `main` branch.
+* Delete `topic` branch.
+
+```console
+$ git hubsync
+current branch: topic
+default remote: origin
+   7266d84eac..8dddfaba30  main           -> origin/main
+ * [new branch]            new            -> origin/new
+ - [deleted]               (none)         -> origin/topic
+remote default: main
+
+Deleted branch topic (was 495368b)
+Updated branch main (was 7266d84)
+```
 
 ## Features
 
