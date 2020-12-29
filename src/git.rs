@@ -24,9 +24,9 @@ macro_rules! ostr {
     };
 }
 
-fn strip_prefix<'a>(s: &'a str, prefix: &str) -> &'a str {
-    if s.starts_with(prefix) {
-        &s[prefix.len()..]
+fn prefix_stripped<'a>(s: &'a str, prefix: &str) -> &'a str {
+    if let Some(stripped) = s.strip_prefix(prefix) {
+        stripped
     } else {
         s
     }
@@ -81,7 +81,7 @@ impl Git {
         let default_name = format!(
             "{}/{}",
             ostr!(remote.name()),
-            strip_prefix(default_ref, "refs/heads/")
+            prefix_stripped(default_ref, "refs/heads/")
         );
         for result in self.repo.branches(Some(BranchType::Local))? {
             let (branch, _) = result?;
@@ -106,7 +106,7 @@ impl Git {
             println!(
                 " - [deleted]               {:14} -> {}",
                 "(none)",
-                strip_prefix(s, "refs/remotes/")
+                prefix_stripped(s, "refs/remotes/")
             );
             return Ok(());
         }
@@ -121,7 +121,7 @@ impl Git {
                     if refer.is_remote() {
                         result = (
                             "branch",
-                            strip_prefix(ostr!(src.as_str()), "refs/heads/").to_string(),
+                            prefix_stripped(ostr!(src.as_str()), "refs/heads/").to_string(),
                             ostr!(refer.shorthand()).to_string(),
                         );
                     } else {
