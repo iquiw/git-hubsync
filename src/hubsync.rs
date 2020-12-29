@@ -43,7 +43,7 @@ pub fn hubsync() -> Result<(), Box<dyn Error>> {
     let mut current_branch = git.current_branch()?;
 
     println!("current branch: {}", ostr!(current_branch.name()?));
-    let mut default_remote = git.remote(&current_branch)?;
+    let mut default_remote = find_default_remote(&git)?;
     println!("default remote: {}", ostr!(default_remote.name()));
     git.fetch(&mut default_remote)?;
     let (remote_default_branch, mut odefault_branch) = git.default_branch(&default_remote)?;
@@ -196,6 +196,15 @@ fn find_branch_action<'a>(
     }
 }
 
+fn find_default_remote<'a>(git: &'a Git) -> Result<git2::Remote<'a>, Box<dyn Error>> {
+    if let Some(remote) = git.only_one_remote()? {
+        Ok(remote)
+    } else {
+        let branch = git.current_branch()?;
+        git.remote(&branch)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use std::env;
@@ -206,7 +215,7 @@ mod test {
 
     use git2::{self, BranchType, Repository};
 
-    use super::find_branch_action;
+    use super::{find_branch_action, find_default_remote};
     use crate::git::Git;
 
     static START: Once = Once::new();
@@ -314,5 +323,58 @@ mod test {
     fn find_branch_action_unmerged() {
         let action_str = test_find_branch_action("unmerge-deleted", "master", None).unwrap();
         assert_eq!(&action_str, "unmerged");
+    }
+
+    static START2: Once = Once::new();
+
+    fn setup2_once() {
+        START2.call_once(|| {
+            setup2().unwrap();
+        });
+    }
+
+    fn setup2() -> Result<(), Box<dyn Error>> {
+        let mut tmp_dir = env::temp_dir();
+        tmp_dir.push("git-hubsync-test");
+        env::set_current_dir(&tmp_dir)?;
+        tmp_dir.push("ght2");
+        if tmp_dir.is_dir() {
+            Command::new("rm").args(&["-rf", "ght2"]).status()?;
+        }
+        Command::new("git")
+            .args(&[
+                "clone",
+                "https://github.com/iquiw/git-hubsync-test2.git",
+                "ght2",
+            ])
+            .status()?;
+        env::set_current_dir(&tmp_dir)?;
+        Ok(())
+    }
+
+    #[test]
+    fn find_default_remote_upstream() {
+        setup2_once();
+
+        let repo = Repository::open_from_env().unwrap();
+        let config = repo.config().unwrap();
+        let git = Git::new(repo, config);
+        let remote = find_default_remote(&git).unwrap();
+        assert_eq!(remote.name().unwrap(), "origin");
+    }
+
+    #[test]
+    fn find_default_remote_no_upstream() {
+        setup2_once();
+        Command::new("git")
+            .args(&["switch", "-c", "test"])
+            .status()
+            .unwrap();
+
+        let repo = Repository::open_from_env().unwrap();
+        let config = repo.config().unwrap();
+        let git = Git::new(repo, config);
+        let remote = find_default_remote(&git).unwrap();
+        assert_eq!(remote.name().unwrap(), "origin");
     }
 }
