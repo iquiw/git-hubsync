@@ -90,7 +90,12 @@ pub fn hubsync() -> Result<(), Box<dyn Error>> {
                 );
             }
             BranchAction::UpdateRef(upstream, oid) => {
-                git.update_ref(&mut branch, &upstream)?;
+                let updated = git.update_ref(&mut branch, &upstream)?;
+                if let Some(ref default_branch) = odefault_branch {
+                    if git::is_branch_same(&branch, default_branch)? {
+                        odefault_branch = Some(updated);
+                    }
+                }
                 println!(
                     "{} {} (was {:.7})",
                     "Updated branch".green(),
