@@ -90,7 +90,12 @@ pub fn hubsync() -> Result<(), Box<dyn Error>> {
                 );
             }
             BranchAction::UpdateRef(upstream, oid) => {
-                git.update_ref(&mut branch, &upstream)?;
+                let updated = git.update_ref(&mut branch, &upstream)?;
+                if let Some(ref default_branch) = odefault_branch {
+                    if git::is_branch_same(&branch, default_branch)? {
+                        odefault_branch = Some(updated);
+                    }
+                }
                 println!(
                     "{} {} (was {:.7})",
                     "Updated branch".green(),
@@ -196,7 +201,7 @@ fn find_branch_action<'a>(
     }
 }
 
-fn find_default_remote<'a>(git: &'a Git) -> Result<git2::Remote<'a>, Box<dyn Error>> {
+fn find_default_remote(git: &Git) -> Result<git2::Remote<'_>, Box<dyn Error>> {
     if let Some(remote) = git.only_one_remote()? {
         Ok(remote)
     } else {

@@ -218,11 +218,11 @@ impl Git {
         })
     }
 
-    pub fn update_ref(
+    pub fn update_ref<'a>(
         &self,
-        branch: &mut Branch,
+        branch: &mut Branch<'a>,
         remote_branch: &Branch,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> Result<Branch<'a>, Box<dyn Error>> {
         let rc = self
             .repo
             .reference_to_annotated_commit(remote_branch.get())?;
@@ -231,8 +231,8 @@ impl Git {
             ostr!(branch.name()?),
             ostr!(remote_branch.name()?)
         );
-        branch.get_mut().set_target(rc.id(), &msg)?;
-        Ok(())
+        let refer = branch.get_mut().set_target(rc.id(), &msg)?;
+        Ok(Branch::wrap(refer))
     }
 
     pub fn only_one_remote(&self) -> Result<Option<Remote<'_>>, Box<dyn Error>> {
