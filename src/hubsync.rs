@@ -201,7 +201,7 @@ fn find_branch_action<'a>(
     }
 }
 
-fn find_default_remote<'a>(git: &'a Git) -> Result<git2::Remote<'a>, Box<dyn Error>> {
+fn find_default_remote(git: &Git) -> Result<git2::Remote<'_>, Box<dyn Error>> {
     if let Some(remote) = git.only_one_remote()? {
         Ok(remote)
     } else {
