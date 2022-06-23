@@ -240,7 +240,7 @@ impl Git {
         if remotes.len() == 1 {
             if let Some(oremote_name) = remotes.iter().next() {
                 let remote_name = ostr!(oremote_name);
-                return Ok(Some(self.repo.find_remote(&remote_name)?));
+                return Ok(Some(self.repo.find_remote(remote_name)?));
             }
         }
         Ok(None)
