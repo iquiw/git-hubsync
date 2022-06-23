@@ -161,13 +161,13 @@ fn find_branch_action<'a>(
     remote_default_branch: &Branch,
     odefault_branch: Option<&Branch<'a>>,
 ) -> Result<BranchAction<'a>, Box<dyn Error>> {
-    match git.upstream(&branch) {
+    match git.upstream(branch) {
         Ok(upstream) => {
-            let range = git.new_range(&branch, &upstream)?;
+            let range = git.new_range(branch, &upstream)?;
             if range.is_identical() {
                 Ok(BranchAction::UpToDate)
             } else if range.is_ancestor()? {
-                if git::is_branch_same(&branch, &current_branch)? {
+                if git::is_branch_same(branch, current_branch)? {
                     Ok(BranchAction::Merge(upstream, range.beg_oid()))
                 } else {
                     Ok(BranchAction::UpdateRef(upstream, range.beg_oid()))
@@ -180,9 +180,9 @@ fn find_branch_action<'a>(
             if e.class() == ErrorClass::Reference && e.code() == ErrorCode::NotFound
                 || /* pushremote */ e.class() == ErrorClass::Config && e.code() == ErrorCode::NotFound
             {
-                let range = git.new_range(&branch, &remote_default_branch)?;
+                let range = git.new_range(branch, remote_default_branch)?;
                 if range.is_ancestor()? {
-                    if git::is_branch_same(&branch, &current_branch)? {
+                    if git::is_branch_same(branch, current_branch)? {
                         if odefault_branch.is_some() {
                             Ok(BranchAction::CheckoutAndDelete)
                         } else {
