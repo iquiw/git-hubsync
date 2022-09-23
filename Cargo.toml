@@ -8,5 +8,5 @@ edition = "2018"
 
 [dependencies]
 colored = "^2.0.0"
-git2 = "^0.14.4"
-git2_credentials = "^0.8.0"
+git2 = "^0.15.0"
+git2_credentials = "^0.9.1"
