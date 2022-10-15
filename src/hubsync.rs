@@ -215,6 +215,7 @@ mod test {
     use std::env;
     use std::error::Error;
     use std::fs::create_dir;
+    use std::path::PathBuf;
     use std::process::Command;
     use std::sync::Once;
 
@@ -232,7 +233,8 @@ mod test {
     }
 
     fn setup() -> Result<(), Box<dyn Error>> {
-        let mut tar_file = env::current_dir()?;
+        env::set_var("GIT_HUBSYNC_DIR", env::current_dir()?);
+        let mut tar_file = PathBuf::from(env::var("GIT_HUBSYNC_DIR")?);
         tar_file.push("ght.tar.gz");
 
         let mut tmp_dir = env::temp_dir();
@@ -283,49 +285,49 @@ mod test {
     }
 
     #[test]
-    fn find_branch_action_merge() {
+    fn test1_find_branch_action_merge() {
         let action_str = test_find_branch_action("master", "master", None).unwrap();
         assert_eq!(&action_str, "merge origin/master");
     }
 
     #[test]
-    fn find_branch_action_up_to_date() {
+    fn test1_find_branch_action_up_to_date() {
         let action_str = test_find_branch_action("up-to-date", "master", None).unwrap();
         assert_eq!(&action_str, "up-to-date");
     }
 
     #[test]
-    fn find_branch_action_update_ref() {
+    fn test1_find_branch_action_update_ref() {
         let action_str = test_find_branch_action("ff", "master", None).unwrap();
         assert_eq!(&action_str, "update-ref origin/ff");
     }
 
     #[test]
-    fn find_branch_action_unpushed() {
+    fn test1_find_branch_action_unpushed() {
         let action_str = test_find_branch_action("non-ff", "master", None).unwrap();
         assert_eq!(&action_str, "unpushed");
     }
 
     #[test]
-    fn find_branch_action_delete() {
+    fn test1_find_branch_action_delete() {
         let action_str = test_find_branch_action("deleted", "master", None).unwrap();
         assert_eq!(&action_str, "delete");
     }
 
     #[test]
-    fn find_branch_action_nodefault() {
+    fn test1_find_branch_action_nodefault() {
         let action_str = test_find_branch_action("deleted", "deleted", None).unwrap();
         assert_eq!(&action_str, "nodefault");
     }
 
     #[test]
-    fn find_branch_action_checkout_and_delete() {
+    fn test1_find_branch_action_checkout_and_delete() {
         let action_str = test_find_branch_action("deleted", "deleted", Some("master")).unwrap();
         assert_eq!(&action_str, "checkout-and-delete");
     }
 
     #[test]
-    fn find_branch_action_unmerged() {
+    fn test1_find_branch_action_unmerged() {
         let action_str = test_find_branch_action("unmerge-deleted", "master", None).unwrap();
         assert_eq!(&action_str, "unmerged");
     }
@@ -358,7 +360,7 @@ mod test {
     }
 
     #[test]
-    fn find_default_remote_upstream() {
+    fn test2_find_default_remote_upstream() {
         setup2_once();
 
         let repo = Repository::open_from_env().unwrap();
@@ -369,7 +371,7 @@ mod test {
     }
 
     #[test]
-    fn find_default_remote_no_upstream() {
+    fn test2_find_default_remote_no_upstream() {
         setup2_once();
         Command::new("git")
             .args(&["switch", "-c", "test"])
@@ -381,5 +383,43 @@ mod test {
         let git = Git::new(repo, config);
         let remote = find_default_remote(&git).unwrap();
         assert_eq!(remote.name().unwrap(), "origin");
+    }
+
+    static START3: Once = Once::new();
+
+    fn setup3_once() {
+        START3.call_once(|| {
+            setup3().unwrap();
+        });
+    }
+
+    fn setup3() -> Result<(), Box<dyn Error>> {
+        let mut tar_file = PathBuf::from(env::var("GIT_HUBSYNC_DIR")?);
+        tar_file.push("ght3.tar.gz");
+
+        let mut tmp_dir = env::temp_dir();
+        tmp_dir.push("git-hubsync-test");
+        if !tmp_dir.is_dir() {
+            create_dir(&tmp_dir)?;
+        }
+        env::set_current_dir(&tmp_dir)?;
+        tmp_dir.push("ght3");
+        if tmp_dir.is_dir() {
+            Command::new("rm").args(&["-rf", "ght3"]).status()?;
+        }
+        Command::new("tar").arg("xzf").arg(tar_file).status()?;
+        env::set_current_dir(&tmp_dir)?;
+        Ok(())
+    }
+
+    #[test]
+    fn test3_find_default_remote_pushdefault() {
+        setup3_once();
+
+        let repo = Repository::open_from_env().unwrap();
+        let config = repo.config().unwrap();
+        let git = Git::new(repo, config);
+        let remote = find_default_remote(&git).unwrap();
+        assert_eq!(remote.name().unwrap(), "github");
     }
 }
