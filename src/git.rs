@@ -95,6 +95,15 @@ impl Git {
         Ok((upstream, None))
     }
 
+    pub fn branch_and_remote(
+        &self,
+        name: &str,
+    ) -> Result<(Branch<'_>, Remote<'_>), Box<dyn Error>> {
+        let branch = self.repo.find_branch(name, BranchType::Local)?;
+        let remote = self.remote(&branch)?;
+        Ok((branch, remote))
+    }
+
     pub fn update_tips(
         &self,
         remote: &Remote,
@@ -250,11 +259,13 @@ impl Git {
         let branch_name = ostr!(branch.get().name());
         let name = if let Ok(buf) = self.repo.branch_upstream_remote(branch_name) {
             ostr!(buf.as_str()).to_string()
+        } else if let Ok(name) = self.config.get_string(&format!(
+            "branch.{}.pushremote",
+            ostr!(branch.get().shorthand())
+        )) {
+            name
         } else {
-            self.config.get_string(&format!(
-                "branch.{}.pushremote",
-                ostr!(branch.get().shorthand())
-            ))?
+            self.config.get_string("remote.pushdefault")?
         };
         Ok(self.repo.find_remote(&name)?)
     }

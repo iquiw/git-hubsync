@@ -30,4 +30,5 @@ jobs:
       - name: Run tests
         run: |
           curl -LO https://github.com/iquiw/git-hubsync-test/raw/new/ght.tar.gz
+          curl -LO https://github.com/iquiw/git-hubsync-test3/raw/new/ght3.tar.gz
           cargo test --verbose -- --test-threads=1
