@@ -95,6 +95,15 @@ impl Git {
         Ok((upstream, None))
     }
 
+    pub fn branch_and_remote(
+        &self,
+        name: &str,
+    ) -> Result<(Branch<'_>, Remote<'_>), Box<dyn Error>> {
+        let branch = self.repo.find_branch(name, BranchType::Local)?;
+        let remote = self.remote(&branch)?;
+        Ok((branch, remote))
+    }
+
     pub fn update_tips(
         &self,
         remote: &Remote,

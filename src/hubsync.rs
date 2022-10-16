@@ -41,6 +41,7 @@ pub fn hubsync() -> Result<(), Box<dyn Error>> {
     let config = repo.config()?;
     let git = Git::new(repo, config);
     let mut current_branch = git.current_branch()?;
+    let mut alternate_remote = None;
 
     println!("current branch: {}", ostr!(current_branch.name()?));
     let mut default_remote = find_default_remote(&git)?;
@@ -49,9 +50,26 @@ pub fn hubsync() -> Result<(), Box<dyn Error>> {
     let (remote_default_branch, mut odefault_branch) = git.default_branch(&default_remote)?;
     if let Some(ref default_branch) = odefault_branch {
         println!("remote default: {}", ostr!(default_branch.name()?));
+    } else if let Ok((b, mut r)) = git
+        .branch_and_remote("main")
+        .or_else(|_| git.branch_and_remote("master"))
+    {
+        git.fetch(&mut r)?;
+        println!(
+            "remote default: {} (use local {}/{})",
+            ostr!(remote_default_branch.name()?),
+            ostr!(r.name()),
+            ostr!(b.name()?)
+        );
+        odefault_branch = Some(b);
+        alternate_remote = Some(r);
     } else {
-        println!("remote default: {}", ostr!(remote_default_branch.name()?));
+        println!(
+            "remote default: {} (no local)",
+            ostr!(remote_default_branch.name()?)
+        );
     }
+
     println!();
 
     for mut branch in git.local_branches()? {
@@ -69,7 +87,13 @@ pub fn hubsync() -> Result<(), Box<dyn Error>> {
             },
         };
         if remote.name() != default_remote.name() {
-            continue;
+            if let Some(ref r) = alternate_remote {
+                if remote.name() != r.name() {
+                    continue;
+                }
+            } else {
+                continue;
+            }
         }
         let action = find_branch_action(
             &git,
