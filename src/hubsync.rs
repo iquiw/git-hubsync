@@ -282,7 +282,6 @@ mod test {
         current: &str,
         odefault: Option<&str>,
     ) -> Result<String, Box<dyn Error>> {
-        setup_once();
         Command::new("git").args(&["switch", current]).status()?;
 
         let repo = Repository::open_from_env()?;
@@ -310,48 +309,56 @@ mod test {
 
     #[test]
     fn test1_find_branch_action_merge() {
+        setup_once();
         let action_str = test_find_branch_action("master", "master", None).unwrap();
         assert_eq!(&action_str, "merge origin/master");
     }
 
     #[test]
     fn test1_find_branch_action_up_to_date() {
+        setup_once();
         let action_str = test_find_branch_action("up-to-date", "master", None).unwrap();
         assert_eq!(&action_str, "up-to-date");
     }
 
     #[test]
     fn test1_find_branch_action_update_ref() {
+        setup_once();
         let action_str = test_find_branch_action("ff", "master", None).unwrap();
         assert_eq!(&action_str, "update-ref origin/ff");
     }
 
     #[test]
     fn test1_find_branch_action_unpushed() {
+        setup_once();
         let action_str = test_find_branch_action("non-ff", "master", None).unwrap();
         assert_eq!(&action_str, "unpushed");
     }
 
     #[test]
     fn test1_find_branch_action_delete() {
+        setup_once();
         let action_str = test_find_branch_action("deleted", "master", None).unwrap();
         assert_eq!(&action_str, "delete");
     }
 
     #[test]
     fn test1_find_branch_action_nodefault() {
+        setup_once();
         let action_str = test_find_branch_action("deleted", "deleted", None).unwrap();
         assert_eq!(&action_str, "nodefault");
     }
 
     #[test]
     fn test1_find_branch_action_checkout_and_delete() {
+        setup_once();
         let action_str = test_find_branch_action("deleted", "deleted", Some("master")).unwrap();
         assert_eq!(&action_str, "checkout-and-delete");
     }
 
     #[test]
     fn test1_find_branch_action_unmerged() {
+        setup_once();
         let action_str = test_find_branch_action("unmerge-deleted", "master", None).unwrap();
         assert_eq!(&action_str, "unmerged");
     }
@@ -433,6 +440,7 @@ mod test {
         }
         Command::new("tar").arg("xzf").arg(tar_file).status()?;
         env::set_current_dir(&tmp_dir)?;
+        Command::new("git").args(&["fetch", "--prune"]).status()?;
         Ok(())
     }
 
@@ -445,5 +453,12 @@ mod test {
         let git = Git::new(repo, config);
         let remote = find_default_remote(&git).unwrap();
         assert_eq!(remote.name().unwrap(), "github");
+    }
+
+    #[test]
+    fn test3_find_branch_action_no_local_default_branch() {
+        setup3_once();
+        let action_str = test_find_branch_action("test", "test", Some("master")).unwrap();
+        assert_eq!(&action_str, "checkout-and-delete");
     }
 }
