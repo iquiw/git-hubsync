@@ -34,12 +34,17 @@ Updated branch main (was 7266d84)
 
 ## Features
 
-* It does not use `git` command.  Thanks [git2](https://github.com/rust-lang/git2-rs) and [git2_credentials](https://github.com/davidB/git2_credentials)!
+* It does not use `git` command.
+  Thanks [git2](https://github.com/rust-lang/git2-rs) and [git2_credentials](https://github.com/davidB/git2_credentials)!
   So it should be faster than `hub sync`, at least on Windows.
 * It selects remote of the current branch, instead of the first remote.
-* It can detect default branch of the remote, even if `refs/remotes/<remote>/HEAD` does not exist.
-* It uses `branch.<branch>.pushremote` as remote if `branch.<branch>.remote` is not found.
-  Some tools like [Magit](https://magit.vc/) utilize `pushremote`.
+* It can detect default branch of the remote, even if `refs/remotes/<remote>/HEAD`
+  does not exist.
+* It uses `branch.<branch>.pushremote` as remote if `branch.<branch>.remote`
+  is not found. And it uses `remote.pushdefault` if both do not exist.
+  Some tools like [Magit](https://magit.vc/) utilize `pushremote` and `remote.pushdefault`.
+* If default branch of the remote does not exist locally, choose "main" or
+  "master" as default branch and its remote as alternate remote.
 
 ## Behavior
 
@@ -47,7 +52,8 @@ Updated branch main (was 7266d84)
 
 When upstream branch is updated;
 
-* If local branch is the current branch and an ancestor of the upstream, fast-forward the local branch.
+* If local branch is the current branch and an ancestor of the upstream,
+  fast-forward the local branch.
 * If local branch is an ancestor of the upstream, update the reference.
 * Otherwise, show warning message.
 
@@ -55,8 +61,10 @@ When upstream branch is updated;
 
 When upstream branch is deleted;
 
-* If local branch is the current branch and merged to default branch of the remote, switch to the default branch and delete the local branch.
-* If local branch is merged to default branch of the remote, delete the local branch.
+* If local branch is the current branch and merged to default branch of the
+  remote, switch to the default branch and delete the local branch.
+* If local branch is merged to default branch of the remote, delete the
+  local branch.
 * Otherwise, show warning message.
 
 ## Flow
@@ -66,15 +74,15 @@ When upstream branch is deleted;
 3. Fetch from the main remote.
 4. Detect default branch of the remote.
 5. For each local branch,
-   1. Skip if remote of the branch is the same as main remote.
+   1. Skip if remote of the branch is the same as main remote or alternate remote.
    2. Skip if the upstream branch is same as the branch.
    3. Update the branch if it is an ancestor of the upstream branch.
-   4. If the upstream branch is deleted and the local branch is merged to the default branch,
+   4. If the upstream branch is deleted and the local branch is merged
+      to the default branch,
       1. If the branch is current,
          1. Skip if the default branch does not exist.
          2. Switch current branch to the default branch.
       2. Delete the branch.
-
 
 ## Caveat
 
