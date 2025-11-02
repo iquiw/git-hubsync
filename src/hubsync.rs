@@ -257,7 +257,9 @@ mod test {
     }
 
     fn setup() -> Result<(), Box<dyn Error>> {
-        env::set_var("GIT_HUBSYNC_DIR", env::current_dir()?);
+        unsafe {
+            env::set_var("GIT_HUBSYNC_DIR", env::current_dir()?);
+        }
         let mut tar_file = PathBuf::from(env::var("GIT_HUBSYNC_DIR")?);
         tar_file.push("ght.tar.gz");
 
