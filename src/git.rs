@@ -195,7 +195,7 @@ impl Git {
         Ok(remote.fetch(&refspecs, Some(&mut fetch_options), None)?)
     }
 
-    pub fn local_branches(&self) -> Result<Vec<Branch>, Box<dyn Error>> {
+    pub fn local_branches(&self) -> Result<Vec<Branch<'_>>, Box<dyn Error>> {
         let mut v = vec![];
         for result in self.repo.branches(Some(BranchType::Local))? {
             let (branch, _) = result?;
