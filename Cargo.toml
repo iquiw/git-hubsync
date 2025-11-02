@@ -2,11 +2,11 @@
 name = "git-hubsync"
 version = "0.1.0"
 authors = ["Iku Iwasa <iku.iwasa@gmail.com>"]
-edition = "2021"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-colored = "2.0.0"
-git2 = "0.16.1"
-git2_credentials = "0.11.0"
+colored = "3.0.0"
+git2 = "0.20.1"
+git2_credentials = "0.15.0"

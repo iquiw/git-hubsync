@@ -115,10 +115,10 @@ pub fn hubsync() -> Result<(), Box<dyn Error>> {
             }
             BranchAction::UpdateRef(upstream, oid) => {
                 let updated = git.update_ref(&mut branch, &upstream)?;
-                if let Some(ref default_branch) = odefault_branch {
-                    if git::is_branch_same(&branch, default_branch)? {
-                        odefault_branch = Some(updated);
-                    }
+                if let Some(ref default_branch) = odefault_branch
+                    && git::is_branch_same(&branch, default_branch)?
+                {
+                    odefault_branch = Some(updated);
                 }
                 println!(
                     "{} {} (was {:.7})",
@@ -257,7 +257,9 @@ mod test {
     }
 
     fn setup() -> Result<(), Box<dyn Error>> {
-        env::set_var("GIT_HUBSYNC_DIR", env::current_dir()?);
+        unsafe {
+            env::set_var("GIT_HUBSYNC_DIR", env::current_dir()?);
+        }
         let mut tar_file = PathBuf::from(env::var("GIT_HUBSYNC_DIR")?);
         tar_file.push("ght.tar.gz");
 

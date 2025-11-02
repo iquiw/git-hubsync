@@ -85,10 +85,10 @@ impl Git {
         );
         for result in self.repo.branches(Some(BranchType::Local))? {
             let (branch, _) = result?;
-            if let Ok(upstream) = branch.upstream() {
-                if ostr!(upstream.name()?) == default_name {
-                    return Ok((upstream, Some(branch)));
-                }
+            if let Ok(upstream) = branch.upstream()
+                && ostr!(upstream.name()?) == default_name
+            {
+                return Ok((upstream, Some(branch)));
             }
         }
         let upstream = self.repo.find_branch(&default_name, BranchType::Remote)?;
@@ -195,7 +195,7 @@ impl Git {
         Ok(remote.fetch(&refspecs, Some(&mut fetch_options), None)?)
     }
 
-    pub fn local_branches(&self) -> Result<Vec<Branch>, Box<dyn Error>> {
+    pub fn local_branches(&self) -> Result<Vec<Branch<'_>>, Box<dyn Error>> {
         let mut v = vec![];
         for result in self.repo.branches(Some(BranchType::Local))? {
             let (branch, _) = result?;
@@ -246,11 +246,11 @@ impl Git {
 
     pub fn only_one_remote(&self) -> Result<Option<Remote<'_>>, Box<dyn Error>> {
         let remotes = self.repo.remotes()?;
-        if remotes.len() == 1 {
-            if let Some(oremote_name) = remotes.iter().next() {
-                let remote_name = ostr!(oremote_name);
-                return Ok(Some(self.repo.find_remote(remote_name)?));
-            }
+        if remotes.len() == 1
+            && let Some(oremote_name) = remotes.iter().next()
+        {
+            let remote_name = ostr!(oremote_name);
+            return Ok(Some(self.repo.find_remote(remote_name)?));
         }
         Ok(None)
     }
