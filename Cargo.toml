@@ -8,5 +8,5 @@ edition = "2024"
 
 [dependencies]
 colored = "3.0.0"
-git2 = "0.20.1"
+git2 = "0.20.4"
 git2_credentials = "0.15.0"
